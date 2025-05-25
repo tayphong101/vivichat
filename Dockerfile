@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 80
 
 # Command to run the Flask app
-CMD ["python", "app.py"]
+CMD ["sh", "-c", "python", "app.py"]
