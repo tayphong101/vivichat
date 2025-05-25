@@ -1,0 +1,521 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+</script>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ViVi Chatbot</title>
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/4712/4712082.png" />
+  <style>
+    :root {
+      --bg-primary: #f6f9fc;
+      --bg-secondary: #ffffff;
+      --text-primary: #1f2a44;
+      --text-secondary: #6b7280;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --border: #e2e8f0;
+      --shadow: rgba(0, 0, 0, 0.08);
+      --message-user: #3b82f6;
+      --message-user-text: #ffffff;
+      --message-bot: #ffffff;
+      --system-bg: #edf2f7;
+      --copy-btn: #e5e7eb;
+      --copy-btn-hover: #d1d5db;
+      --toast-bg: #2d3748;
+      --toast-text: #ffffff;
+    }
+    [data-theme="dark"] {
+      --bg-primary: #1f2a44;
+      --bg-secondary: #2d3748;
+      --text-primary: #e2e8f0;
+      --text-secondary: #a0aec0;
+      --accent: #60a5fa;
+      --accent-hover: #3b82f6;
+      --border: #4b5563;
+      --shadow: rgba(0, 0, 0, 0.2);
+      --message-user: #60a5fa;
+      --message-user-text: #ffffff;
+      --message-bot: #2d3748;
+      --system-bg: #4b5563;
+      --copy-btn: #4b5563;
+      --copy-btn-hover: #6b7280;
+      --toast-bg: #e2e8f0;
+      --toast-text: #1f2a44;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      font-size: 16px;
+      color: var(--text-primary);
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+    header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 2px var(--shadow);
+    }
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    header img.logo {
+      height: 40px;
+      width: auto;
+    }
+    .toolbar {
+      display: flex;
+      gap: 8px;
+    }
+    .toolbar button, #theme-toggle {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-primary);
+      padding: 8px;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .toolbar button:hover, #theme-toggle:hover {
+      background: var(--copy-btn);
+    }
+    #chat-window {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 12px;
+      background: var(--bg-primary);
+      margin: 0 auto;
+      width: 100%;
+    }
+    .message {
+      max-width: 80%;
+      padding: 14px 20px;
+      border-radius: 16px;
+      line-height: 1.6;
+      background: var(--message-bot);
+      box-shadow: 0 2px 6px var(--shadow);
+      position: relative;
+      animation: slideIn 0.3s ease-out;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+    .message pre, .message code {
+      background: var(--system-bg);
+      padding: 8px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      overflow-x: auto;
+    }
+    .message table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 8px 0;
+    }
+    .message th, .message td {
+      border: 1px solid var(--border);
+      padding: 8px;
+      text-align: left;
+    }
+    .message ul, .message ol {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+    @keyframes slideIn {
+      from { transform: translateY(10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .message.user {
+      align-self: flex-end;
+      background: var(--message-user);
+      color: var(--message-user-text);
+    }
+    .message.bot {
+      align-self: flex-start;
+    }
+    .message:hover .copy-btn {
+      display: block;
+    }
+    .copy-btn {
+      display: none;
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--copy-btn);
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      padding: 6px 10px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .copy-btn:hover {
+      background: var(--copy-btn-hover);
+    }
+    .system {
+      align-self: center;
+      font-style: italic;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      background: var(--system-bg);
+      padding: 10px 18px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .spinner {
+      border: 2px solid var(--border);
+      border-top: 2px solid var(--accent);
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--toast-bg);
+      color: var(--toast-text);
+      padding: 10px 20px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 1000;
+    }
+    #toast.show {
+      opacity: 1;
+    }
+    #input-bar {
+      display: flex;
+      align-items: center;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-secondary);
+      box-shadow: 0 -2px 6px var(--shadow);
+      margin: 0 auto;
+      width: 100%;
+    }
+    #input-bar input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 16px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      transition: border-color 0.2s;
+    }
+    #input-bar input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    #input-bar button {
+      margin-left: 12px;
+      padding: 12px 20px;
+      font-size: 16px;
+      background: var(--accent);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    #input-bar button:hover {
+      background: var(--accent-hover);
+    }
+    #clear-input {
+      margin-left: 8px;
+      padding: 12px;
+      background: var(--copy-btn);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+    #clear-input:hover {
+      background: var(--copy-btn-hover);
+    }
+    @media (max-width: 768px) {
+      header h1 {
+        font-size: 1.25rem;
+      }
+      header img.logo {
+        height: 32px;
+      }
+      #chat-window {
+        padding: 16px;
+      }
+      .message {
+        max-width: 90%;
+        padding: 12px 16px;
+      }
+      #input-bar {
+        padding: 12px 16px;
+      }
+      #input-bar input {
+        font-size: 14px;
+      }
+      #input-bar button {
+        padding: 10px 16px;
+        font-size: 14px;
+      }
+    }
+    @media (max-width: 480px) {
+      header {
+        padding: 10px 16px;
+      }
+      header h1 {
+        font-size: 1.1rem;
+      }
+      #chat-window {
+        padding: 12px;
+      }
+      .message {
+        max-width: 95%;
+        font-size: 14px;
+      }
+      #input-bar {
+        padding: 10px 12px;
+      }
+      #input-bar button {
+        padding: 8px 12px;
+      }
+      #clear-input {
+        padding: 8px;
+      }
+    }
+    @media (min-width: 1200px) {
+      #chat-window, #input-bar {
+        padding-left: 40px;
+        padding-right: 40px;
+      }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
+</head>
+<body>
+  <header>
+    <img src="https://cdn-icons-png.flaticon.com/512/4712/4712082.png" alt="Logo" class="logo" />
+    <h1>ViVi Chatbot</h1>
+    <div class="toolbar">
+      <button id="clear-chat" title="Xóa lịch sử chat">🗑️</button>
+      <button id="theme-toggle" title="Chuyển đổi giao diện sáng/tối">☀️</button>
+    </div>
+  </header>
+  <div id="chat-window"></div>
+  <div id="input-bar">
+    <input type="text" id="user-input" placeholder="Nhập câu hỏi của bạn..." onkeydown="if(event.key==='Enter') sendMessage()" />
+    <!--<button id="clear-input" onclick="clearInput()">🗑️</button>-->
+    <button onclick="sendMessage()">📤 Gửi</button>
+  </div>
+  <div id="toast"></div>
+
+  <script>
+    const chatWindow = document.getElementById("chat-window");
+    const themeToggle = document.getElementById("theme-toggle");
+    const clearChatBtn = document.getElementById("clear-chat");
+    const toast = document.getElementById("toast");
+
+    // Khởi tạo giao diện từ localStorage
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.body.setAttribute('data-theme', savedTheme);
+    themeToggle.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+
+    // Xử lý chuyển đổi giao diện
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.body.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    });
+
+    // Hiển thị toast notification
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    // Xóa lịch sử chat
+    clearChatBtn.addEventListener('click', () => {
+      while (chatWindow.firstChild) {
+        chatWindow.removeChild(chatWindow.firstChild);
+      }
+      showToast("Đã xóa lịch sử chat");
+    });
+
+    // Xóa input
+    function clearInput() {
+      document.getElementById('user-input').value = '';
+      showToast("Đã xóa nội dung nhập");
+    }
+
+    function generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    let sessionId = localStorage.getItem('session_id');
+    if (!sessionId) {
+      sessionId = generateUUID();
+      localStorage.setItem('session_id', sessionId);
+    }
+
+    function appendMessage(text, className) {
+      const div = document.createElement("div");
+      div.className = `message ${className}`;
+      if (className === "bot") {
+        div.innerHTML = marked.parse(text);
+      } else if (className === "system") {
+        div.innerHTML = `<span class="spinner"></span>${text}`;
+      } else {
+        div.textContent = text;
+      }
+
+      if (className !== "system") {
+        const copyBtn = document.createElement("button");
+        copyBtn.textContent = "📋";
+        copyBtn.className = "copy-btn";
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(text);
+          showToast("Đã sao chép tin nhắn");
+        };
+        div.appendChild(copyBtn);
+      }
+
+      chatWindow.insertBefore(div, chatWindow.firstChild);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("user-input");
+      const question = input.value.trim();
+      if (!question) return;
+
+      appendMessage(question, "user");
+      appendMessage("Đang xử lý...", "system");
+      input.value = "";
+
+      try {
+        const res = await fetch("/api/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question, session_id: sessionId })
+        });
+        const data = await res.json();
+
+        const sysMsg = document.querySelector(".system");
+        if (sysMsg) chatWindow.removeChild(sysMsg);
+
+        if (data.answer) {
+          appendMessage(data.answer, "bot");
+        } else {
+          appendMessage("(Không có phản hồi hợp lệ từ server)", "bot");
+        }
+      } catch (error) {
+        const sysMsg = document.querySelector(".system");
+        if (sysMsg) chatWindow.removeChild(sysMsg);
+        appendMessage("(Lỗi kết nối đến API: " + error.message + ")", "bot");
+      }
+    }
+
+    window.onload = () => {
+      appendMessage("Tôi là trợ lý ảo, tôi có thể hỗ trợ các thông tin sau:<br >- Văn kiện hội nghị người lao động. <br >- Hướng dẫn chữ viết tắt tên đơn vị. <br >Tôi có thể giúp gì cho bạn?", "bot");
+    };
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93c531c39debbd58',t:'MTc0NjY2Nzg1My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>
